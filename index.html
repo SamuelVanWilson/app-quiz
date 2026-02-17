@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Quiz Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="p-4 md:p-8">
+    <!-- Hidden SVG Icons Library -->
+    <svg class="svg-hidden">
+        <defs>
+            <symbol id="icon-clock" viewBox="0 0 24 24">
+                <path
+                    d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z" />
+            </symbol>
+            <symbol id="icon-check" viewBox="0 0 24 24">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+            </symbol>
+            <symbol id="icon-close" viewBox="0 0 24 24">
+                <path
+                    d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+            </symbol>
+            <symbol id="icon-download" viewBox="0 0 24 24">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+            </symbol>
+            <symbol id="icon-copy" viewBox="0 0 24 24">
+                <path
+                    d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+            </symbol>
+            <symbol id="icon-play" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+            </symbol>
+            <symbol id="icon-trash" viewBox="0 0 24 24">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+            </symbol>
+            <symbol id="icon-edit" viewBox="0 0 24 24">
+                <path
+                    d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+            </symbol>
+            <symbol id="icon-plus" viewBox="0 0 24 24">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+            </symbol>
+            <symbol id="icon-alert" viewBox="0 0 24 24">
+                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+            </symbol>
+        </defs>
+    </svg>
+
+    <div id="app" class="max-w-6xl mx-auto">
+        <!-- PHASE 1: SETUP -->
+        <div id="setupPhase" class="fade-in">
+            <div class="glass-card p-8 md:p-12">
+                <div class="text-center mb-8">
+                    <h1
+                        class="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4">
+                        Custom Quiz Engine
+                    </h1>
+                    <p class="text-gray-600 text-lg">Simulasi Tes Kecepatan Tinggi dengan Manajemen Data Dinamis</p>
+                </div>
+
+                <form id="setupForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Judul Tes</label>
+                        <input type="text" id="testTitle" required
+                            class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:outline-none transition"
+                            placeholder="Contoh: Tes Kemampuan Verbal">
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Durasi Total (Menit)</label>
+                            <input type="number" id="globalDuration" required min="1" value="15"
+                                class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:outline-none transition"
+                                placeholder="15">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Waktu Insting per Soal
+                                (Detik)</label>
+                            <input type="number" id="instinctDuration" required min="1" value="5"
+                                class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:outline-none transition"
+                                placeholder="5">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <p class="font-semibold text-gray-700">Suara Beep Alert</p>
+                            <p class="text-sm text-gray-500">Aktifkan notifikasi suara saat waktu insting habis</p>
+                        </div>
+                        <div class="relative">
+                            <input type="checkbox" id="beepEnabled" class="toggle-checkbox sr-only" checked>
+                            <label for="beepEnabled"
+                                class="block w-14 h-8 rounded-full bg-gray-300 cursor-pointer relative transition-colors duration-300">
+                                <span
+                                    class="toggle-label absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full btn-primary text-white font-bold py-4 rounded-lg text-lg">
+                        Lanjut ke Import Soal
+                        <svg class="icon inline-block ml-2">
+                            <use href="#icon-play" />
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- PHASE 2: IMPORT -->
+        <div id="importPhase" class="hidden fade-in">
+            <div class="glass-card p-8 md:p-12">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">Import & Editor Soal</h2>
+                    <button id="backToSetupBtn" class="text-purple-600 hover:text-purple-800 font-semibold">
+                        ← Kembali ke Setup
+                    </button>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Bulk Import (Paste Soal)</label>
+                    <p class="text-sm text-gray-500 mb-3">Format: Pertanyaan | Opsi1 | Opsi2 | Opsi3 | ... (satu soal
+                        per baris)</p>
+                    <textarea id="bulkImportText" rows="8"
+                        class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:outline-none transition font-mono text-sm"
+                        placeholder="Siapa presiden pertama Indonesia? | Soekarno | Soeharto | Habibie&#10;2 + 2 = ? | 3 | 4 | 5 | 6&#10;Ibukota Jepang? | Tokyo | Osaka | Kyoto"></textarea>
+
+                    <div class="flex gap-3 mt-3">
+                        <button id="parseQuestionsBtn"
+                            class="btn-primary text-white font-bold px-6 py-3 rounded-lg flex items-center">
+                            <svg class="icon mr-2">
+                                <use href="#icon-plus" />
+                            </svg>
+                            Parse & Tambahkan Soal
+                        </button>
+                        <button id="clearBulkTextBtn"
+                            class="bg-gray-200 text-gray-700 font-bold px-6 py-3 rounded-lg hover:bg-gray-300">
+                            Clear Text
+                        </button>
+                    </div>
+                </div>
+
+                <div id="errorMessage"
+                    class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded">
+                    <div class="flex items-center">
+                        <svg class="icon mr-2">
+                            <use href="#icon-alert" />
+                        </svg>
+                        <span id="errorText"></span>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-700">Daftar Soal (<span id="questionCount">0</span>)</h3>
+                    <button id="addManualQuestionBtn"
+                        class="bg-green-500 text-white font-bold px-4 py-2 rounded-lg hover:bg-green-600 flex items-center">
+                        <svg class="icon mr-2">
+                            <use href="#icon-plus" />
+                        </svg>
+                        Tambah Manual
+                    </button>
+                </div>
+
+                <div id="questionsList" class="space-y-4 mb-6 max-h-96 overflow-y-auto">
+                    <p class="text-gray-400 text-center py-8">Belum ada soal. Gunakan bulk import atau tambah manual.
+                    </p>
+                </div>
+
+                <button id="startTestBtn" disabled
+                    class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-4 rounded-lg text-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                    Mulai Tes
+                    <svg class="icon inline-block ml-2">
+                        <use href="#icon-play" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- PHASE 3: TESTING -->
+        <div id="testingPhase" class="hidden fade-in">
+            <!-- Global Timer Section -->
+            <div class="glass-card p-6 mb-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-600">TES: <span id="testTitleDisplay"></span></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-gray-600">WAKTU TERSISA</p>
+                        <p id="globalTimer" class="text-4xl font-bold text-purple-600">00:00</p>
+                    </div>
+                </div>
+                <div class="mt-4 bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div id="globalProgress" class="progress-bar bg-gradient-to-r from-purple-500 to-pink-500 h-full">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instinct Timer Bar -->
+            <div class="glass-card p-4 mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <p class="text-sm font-semibold text-gray-600">INSTINCT TIMER</p>
+                    <p class="text-sm font-semibold text-gray-600">Beep Count: <span id="beepCounter"
+                            class="text-red-600">0</span></p>
+                </div>
+                <div class="bg-gray-200 rounded-full h-4 overflow-hidden">
+                    <div id="instinctProgress" class="instinct-bar bg-gradient-to-r from-green-400 to-green-500 h-full">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question Display -->
+            <div class="glass-card p-8">
+                <div class="mb-6">
+                    <p class="text-sm font-semibold text-purple-600 mb-2">PERTANYAAN <span
+                            id="currentQuestionNum"></span></p>
+                    <h3 id="questionText" class="text-2xl font-bold text-gray-800 mb-6"></h3>
+                </div>
+
+                <div id="answersContainer" class="space-y-3 mb-6">
+                    <!-- Answer buttons will be dynamically inserted here -->
+                </div>
+
+                <div class="flex justify-between items-center pt-4 border-t-2">
+                    <p class="text-gray-600">Soal <span id="questionProgress"></span></p>
+                    <button id="nextQuestionBtn" disabled
+                        class="btn-primary text-white font-bold px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span id="nextBtnText">Pilih Jawaban</span>
+                        <svg class="icon inline-block ml-2">
+                            <use href="#icon-play" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHASE 4: RESULTS -->
+        <div id="resultPhase" class="hidden fade-in">
+            <div class="glass-card p-8 md:p-12">
+                <div class="text-center mb-8">
+                    <h2
+                        class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600 mb-4">
+                        Hasil Tes
+                    </h2>
+                    <p class="text-gray-600 text-lg" id="resultTestTitle"></p>
+                </div>
+
+                <!-- Performance Summary -->
+                <div class="grid md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-gradient-to-br from-purple-500 to-pink-500 text-white p-6 rounded-xl">
+                        <p class="text-sm font-semibold opacity-90 mb-2">AKURASI</p>
+                        <p class="text-4xl font-bold" id="accuracyDisplay">0%</p>
+                        <p class="text-sm opacity-75 mt-1" id="scoreDisplay">0/0 benar</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-blue-500 to-cyan-500 text-white p-6 rounded-xl">
+                        <p class="text-sm font-semibold opacity-90 mb-2">SISA WAKTU</p>
+                        <p class="text-4xl font-bold" id="timeRemainingDisplay">00:00</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-red-500 to-orange-500 text-white p-6 rounded-xl">
+                        <p class="text-sm font-semibold opacity-90 mb-2">BEEP VIOLATIONS</p>
+                        <p class="text-4xl font-bold" id="beepTotalDisplay">0</p>
+                        <p class="text-sm opacity-75 mt-1">kali kelamaan</p>
+                    </div>
+                </div>
+
+                <!-- Detailed Review -->
+                <div class="mb-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Detail Jawaban</h3>
+                    <div id="detailedReview" class="space-y-3 max-h-96 overflow-y-auto">
+                        <!-- Detailed answers will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="grid md:grid-cols-3 gap-4">
+                    <button id="downloadMarkdownBtn"
+                        class="btn-primary text-white font-bold py-4 rounded-lg flex items-center justify-center">
+                        <svg class="icon mr-2">
+                            <use href="#icon-download" />
+                        </svg>
+                        Download Markdown
+                    </button>
+
+                    <button id="copyToClipboardBtn"
+                        class="bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold py-4 rounded-lg flex items-center justify-center">
+                        <svg class="icon mr-2">
+                            <use href="#icon-copy" />
+                        </svg>
+                        Copy ke Clipboard
+                    </button>
+
+                    <button id="newTestBtn"
+                        class="bg-gradient-to-r from-gray-600 to-gray-700 text-white font-bold py-4 rounded-lg flex items-center justify-center">
+                        <svg class="icon mr-2">
+                            <use href="#icon-plus" />
+                        </svg>
+                        Tes Baru
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

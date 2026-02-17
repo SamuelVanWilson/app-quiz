@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Quiz Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .toggle-checkbox:checked {
+            background-color: #10b981;
+            border-color: #10b981;
+        }
+        
+        .toggle-checkbox:checked ~ .toggle-label {
+            transform: translateX(100%);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        
+        .instinct-bar {
+            transition: all 0.5s linear;
+        }
+        
+        .instinct-bar.warning {
+            background: linear-gradient(90deg, #f59e0b 0%, #f97316 100%);
+        }
+        
+        .instinct-bar.danger {
+            background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+            animation: pulse 0.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .answer-btn {
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+        
+        .answer-btn:hover {
+            transform: translateX(5px);
+            border-color: #667eea;
+        }
+        
+        .answer-btn.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .answer-btn.correct {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .answer-btn.incorrect {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+        
+        .question-item {
+            border-left: 4px solid #667eea;
+        }
+        
+        /* SVG Icons embedded */
+        .icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            display: inline-block;
+            fill: currentColor;
+        }
+        
+        .icon-lg {
+            width: 3rem;
+            height: 3rem;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <!-- Hidden SVG Icons Library -->
+    <svg style="display: none;">
+        <defs>
+            <symbol id="icon-clock" viewBox="0 0 24 24">
+                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/>
+            </symbol>
+            <symbol id="icon-check" viewBox="0 0 24 24">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </symbol>
+            <symbol id="icon-close" viewBox="0 0 24 24">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </symbol>
+            <symbol id="icon-download" viewBox="0 0 24 24">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+            </symbol>
+            <symbol id="icon-copy" viewBox="0 0 24 24">
+                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+            </symbol>
+            <symbol id="icon-play" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z"/>
+            </symbol>
+            <symbol id="icon-trash" viewBox="0 0 24 24">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+            </symbol>
+            <symbol id="icon-edit" viewBox="0 0 24 24">
+                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+            </symbol>
+            <symbol id="icon-plus" viewBox="0 0 24 24">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </symbol>
+            <symbol id="icon-alert" viewBox="0 0 24 24">
+                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+            </symbol>
+        </defs>
+    </svg>
+
+    <div id="app" class="max-w-6xl mx-auto">
+        <!-- PHASE 1: SETUP -->
+        <div id="setupPhase" class="fade-in">
+            <div class="glass-card p-8 md:p-12">
+                <div class="text-center mb-8">
+                    <h1 class="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4">
+                        Custom Quiz Engine
+                    </h1>
+                    <p class="text-gray-600 text-lg">Simulasi Tes Kecepatan Tinggi dengan Manajemen Data Dinamis</p>
+                </div>
+                
+                <form id="setupForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Judul Tes</label>
+                        <input type="text" id="testTitle" required
+                            class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:outline-none transition"
+                            placeholder="Contoh: Tes Kemampuan Verbal">
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Durasi Total (Menit)</label>
+                            <input type="number" id="globalDuration" required min="1" value="15"
+                                class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:outline-none transition"
+                                placeholder="15">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Waktu Insting per Soal (Detik)</label>
+                            <input type="number" id="instinctDuration" required min="1" value="5"
+                                class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:outline-none transition"
+                                placeholder="5">
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <p class="font-semibold text-gray-700">Suara Beep Alert</p>
+                            <p class="text-sm text-gray-500">Aktifkan notifikasi suara saat waktu insting habis</p>
+                        </div>
+                        <div class="relative">
+                            <input type="checkbox" id="beepEnabled" class="toggle-checkbox sr-only" checked>
+                            <label for="beepEnabled" class="block w-14 h-8 rounded-full bg-gray-300 cursor-pointer relative transition-colors duration-300">
+                                <span class="toggle-label absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="w-full btn-primary text-white font-bold py-4 rounded-lg text-lg">
+                        Lanjut ke Import Soal
+                        <svg class="icon inline-block ml-2"><use href="#icon-play"/></svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- PHASE 2: IMPORT -->
+        <div id="importPhase" class="hidden fade-in">
+            <div class="glass-card p-8 md:p-12">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">Import & Editor Soal</h2>
+                    <button onclick="goToSetup()" class="text-purple-600 hover:text-purple-800 font-semibold">
+                        ← Kembali ke Setup
+                    </button>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Bulk Import (Paste Soal)</label>
+                    <p class="text-sm text-gray-500 mb-3">Format: Pertanyaan | Opsi1 | Opsi2 | Opsi3 | ... (satu soal per baris)</p>
+                    <textarea id="bulkImportText" rows="8"
+                        class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:outline-none transition font-mono text-sm"
+                        placeholder="Siapa presiden pertama Indonesia? | Soekarno | Soeharto | Habibie&#10;2 + 2 = ? | 3 | 4 | 5 | 6&#10;Ibukota Jepang? | Tokyo | Osaka | Kyoto"></textarea>
+                    
+                    <div class="flex gap-3 mt-3">
+                        <button onclick="parseQuestions()" class="btn-primary text-white font-bold px-6 py-3 rounded-lg flex items-center">
+                            <svg class="icon mr-2"><use href="#icon-plus"/></svg>
+                            Parse & Tambahkan Soal
+                        </button>
+                        <button onclick="clearBulkText()" class="bg-gray-200 text-gray-700 font-bold px-6 py-3 rounded-lg hover:bg-gray-300">
+                            Clear Text
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="errorMessage" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded">
+                    <div class="flex items-center">
+                        <svg class="icon mr-2"><use href="#icon-alert"/></svg>
+                        <span id="errorText"></span>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-700">Daftar Soal (<span id="questionCount">0</span>)</h3>
+                    <button onclick="addManualQuestion()" class="bg-green-500 text-white font-bold px-4 py-2 rounded-lg hover:bg-green-600 flex items-center">
+                        <svg class="icon mr-2"><use href="#icon-plus"/></svg>
+                        Tambah Manual
+                    </button>
+                </div>
+                
+                <div id="questionsList" class="space-y-4 mb-6 max-h-96 overflow-y-auto">
+                    <p class="text-gray-400 text-center py-8">Belum ada soal. Gunakan bulk import atau tambah manual.</p>
+                </div>
+                
+                <button id="startTestBtn" onclick="startTest()" disabled
+                    class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-4 rounded-lg text-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                    Mulai Tes
+                    <svg class="icon inline-block ml-2"><use href="#icon-play"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- PHASE 3: TESTING -->
+        <div id="testingPhase" class="hidden fade-in">
+            <!-- Global Timer Section -->
+            <div class="glass-card p-6 mb-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-600">TES: <span id="testTitleDisplay"></span></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-gray-600">WAKTU TERSISA</p>
+                        <p id="globalTimer" class="text-4xl font-bold text-purple-600">00:00</p>
+                    </div>
+                </div>
+                <div class="mt-4 bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div id="globalProgress" class="progress-bar bg-gradient-to-r from-purple-500 to-pink-500 h-full" style="width: 100%"></div>
+                </div>
+            </div>
+            
+            <!-- Instinct Timer Bar -->
+            <div class="glass-card p-4 mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <p class="text-sm font-semibold text-gray-600">INSTINCT TIMER</p>
+                    <p class="text-sm font-semibold text-gray-600">Beep Count: <span id="beepCounter" class="text-red-600">0</span></p>
+                </div>
+                <div class="bg-gray-200 rounded-full h-4 overflow-hidden">
+                    <div id="instinctProgress" class="instinct-bar bg-gradient-to-r from-green-400 to-green-500 h-full transition-all" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <!-- Question Display -->
+            <div class="glass-card p-8">
+                <div class="mb-6">
+                    <p class="text-sm font-semibold text-purple-600 mb-2">PERTANYAAN <span id="currentQuestionNum"></span></p>
+                    <h3 id="questionText" class="text-2xl font-bold text-gray-800 mb-6"></h3>
+                </div>
+                
+                <div id="answersContainer" class="space-y-3 mb-6">
+                    <!-- Answer buttons will be dynamically inserted here -->
+                </div>
+                
+                <div class="flex justify-between items-center pt-4 border-t-2">
+                    <p class="text-gray-600">Soal <span id="questionProgress"></span></p>
+                    <button id="nextQuestionBtn" onclick="nextQuestion()" disabled
+                        class="btn-primary text-white font-bold px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span id="nextBtnText">Pilih Jawaban</span>
+                        <svg class="icon inline-block ml-2"><use href="#icon-play"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHASE 4: RESULTS -->
+        <div id="resultPhase" class="hidden fade-in">
+            <div class="glass-card p-8 md:p-12">
+                <div class="text-center mb-8">
+                    <h2 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600 mb-4">
+                        Hasil Tes
+                    </h2>
+                    <p class="text-gray-600 text-lg" id="resultTestTitle"></p>
+                </div>
+                
+                <!-- Performance Summary -->
+                <div class="grid md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-gradient-to-br from-purple-500 to-pink-500 text-white p-6 rounded-xl">
+                        <p class="text-sm font-semibold opacity-90 mb-2">AKURASI</p>
+                        <p class="text-4xl font-bold" id="accuracyDisplay">0%</p>
+                        <p class="text-sm opacity-75 mt-1" id="scoreDisplay">0/0 benar</p>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-blue-500 to-cyan-500 text-white p-6 rounded-xl">
+                        <p class="text-sm font-semibold opacity-90 mb-2">SISA WAKTU</p>
+                        <p class="text-4xl font-bold" id="timeRemainingDisplay">00:00</p>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-red-500 to-orange-500 text-white p-6 rounded-xl">
+                        <p class="text-sm font-semibold opacity-90 mb-2">BEEP VIOLATIONS</p>
+                        <p class="text-4xl font-bold" id="beepTotalDisplay">0</p>
+                        <p class="text-sm opacity-75 mt-1">kali kelamaan</p>
+                    </div>
+                </div>
+                
+                <!-- Detailed Review -->
+                <div class="mb-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Detail Jawaban</h3>
+                    <div id="detailedReview" class="space-y-3 max-h-96 overflow-y-auto">
+                        <!-- Detailed answers will be inserted here -->
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="grid md:grid-cols-3 gap-4">
+                    <button onclick="downloadMarkdown()" class="btn-primary text-white font-bold py-4 rounded-lg flex items-center justify-center">
+                        <svg class="icon mr-2"><use href="#icon-download"/></svg>
+                        Download Markdown
+                    </button>
+                    
+                    <button onclick="copyToClipboard()" class="bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold py-4 rounded-lg flex items-center justify-center">
+                        <svg class="icon mr-2"><use href="#icon-copy"/></svg>
+                        Copy ke Clipboard
+                    </button>
+                    
+                    <button onclick="newTest()" class="bg-gradient-to-r from-gray-600 to-gray-700 text-white font-bold py-4 rounded-lg flex items-center justify-center">
+                        <svg class="icon mr-2"><use href="#icon-plus"/></svg>
+                        Tes Baru
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== GLOBAL STATE =====
+        const AppState = {
+            testTitle: '',
+            globalDuration: 0,
+            instinctDuration: 0,
+            beepEnabled: true,
+            questions: [],
+            currentPhase: 'setup',
+            currentQuestionIndex: 0,
+            globalTimeRemaining: 0,
+            instinctTimeRemaining: 0,
+            beepCount: 0,
+            testStartTime: null,
+            audioContext: null,
+            globalTimerInterval: null,
+            instinctTimerInterval: null,
+            selectedAnswer: null
+        };
+
+        // ===== PHASE TRANSITIONS =====
+        function showPhase(phaseName) {
+            document.getElementById('setupPhase').classList.add('hidden');
+            document.getElementById('importPhase').classList.add('hidden');
+            document.getElementById('testingPhase').classList.add('hidden');
+            document.getElementById('resultPhase').classList.add('hidden');
+            
+            document.getElementById(phaseName + 'Phase').classList.remove('hidden');
+            AppState.currentPhase = phaseName;
+        }
+
+        function goToSetup() {
+            showPhase('setup');
+        }
+
+        // ===== SETUP PHASE =====
+        document.getElementById('setupForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            AppState.testTitle = document.getElementById('testTitle').value;
+            AppState.globalDuration = parseInt(document.getElementById('globalDuration').value);
+            AppState.instinctDuration = parseInt(document.getElementById('instinctDuration').value);
+            AppState.beepEnabled = document.getElementById('beepEnabled').checked;
+            
+            showPhase('import');
+        });
+
+        // ===== IMPORT PHASE =====
+        function parseQuestions() {
+            const text = document.getElementById('bulkImportText').value.trim();
+            if (!text) {
+                showError('Teks tidak boleh kosong!');
+                return;
+            }
+            
+            const lines = text.split('\n').filter(line => line.trim());
+            let parsed = 0;
+            
+            lines.forEach((line, idx) => {
+                const parts = line.split('|').map(p => p.trim()).filter(p => p);
+                
+                if (parts.length < 3) {
+                    showError(`Baris ${idx + 1}: Format tidak valid. Minimal harus ada pertanyaan dan 2 opsi.`);
+                    return;
+                }
+                
+                const question = {
+                    id: Date.now() + idx,
+                    question: parts[0],
+                    options: parts.slice(1),
+                    userAnswer: null,
+                    correctAnswer: 0, // Default correct answer (for demo, not used in marking)
+                    isCorrect: null
+                };
+                
+                AppState.questions.push(question);
+                parsed++;
+            });
+            
+            if (parsed > 0) {
+                hideError();
+                updateQuestionsList();
+                document.getElementById('bulkImportText').value = '';
+            }
+        }
+
+        function clearBulkText() {
+            document.getElementById('bulkImportText').value = '';
+        }
+
+        function addManualQuestion() {
+            const question = prompt('Masukkan pertanyaan:');
+            if (!question) return;
+            
+            const optionsText = prompt('Masukkan opsi jawaban (pisah dengan |):\nContoh: Opsi A | Opsi B | Opsi C');
+            if (!optionsText) return;
+            
+            const options = optionsText.split('|').map(o => o.trim()).filter(o => o);
+            if (options.length < 2) {
+                alert('Minimal harus ada 2 opsi jawaban!');
+                return;
+            }
+            
+            AppState.questions.push({
+                id: Date.now(),
+                question: question,
+                options: options,
+                userAnswer: null,
+                correctAnswer: 0,
+                isCorrect: null
+            });
+            
+            updateQuestionsList();
+        }
+
+        function updateQuestionsList() {
+            const container = document.getElementById('questionsList');
+            const count = document.getElementById('questionCount');
+            
+            count.textContent = AppState.questions.length;
+            
+            if (AppState.questions.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-center py-8">Belum ada soal. Gunakan bulk import atau tambah manual.</p>';
+                document.getElementById('startTestBtn').disabled = true;
+                return;
+            }
+            
+            container.innerHTML = AppState.questions.map((q, idx) => `
+                <div class="question-item bg-white p-4 rounded-lg border-l-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <p class="font-bold text-purple-600 mb-1">Soal ${idx + 1}</p>
+                            <p class="text-gray-800 font-semibold mb-2">${q.question}</p>
+                            <div class="flex flex-wrap gap-2">
+                                ${q.options.map((opt, i) => `
+                                    <span class="text-sm bg-gray-100 px-3 py-1 rounded-full">${String.fromCharCode(65 + i)}. ${opt}</span>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <button onclick="deleteQuestion(${q.id})" class="text-red-500 hover:text-red-700 ml-4">
+                            <svg class="icon"><use href="#icon-trash"/></svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('startTestBtn').disabled = false;
+        }
+
+        function deleteQuestion(id) {
+            if (confirm('Hapus soal ini?')) {
+                AppState.questions = AppState.questions.filter(q => q.id !== id);
+                updateQuestionsList();
+            }
+        }
+
+        function showError(msg) {
+            document.getElementById('errorMessage').classList.remove('hidden');
+            document.getElementById('errorText').textContent = msg;
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.add('hidden');
+        }
+
+        // ===== TESTING PHASE =====
+        function startTest() {
+            if (AppState.questions.length === 0) {
+                alert('Belum ada soal!');
+                return;
+            }
+            
+            // Initialize Audio Context (user interaction required)
+            if (!AppState.audioContext) {
+                try {
+                    AppState.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.error('Web Audio API not supported', e);
+                }
+            }
+            
+            // Reset state
+            AppState.currentQuestionIndex = 0;
+            AppState.beepCount = 0;
+            AppState.globalTimeRemaining = AppState.globalDuration * 60; // convert to seconds
+            AppState.testStartTime = Date.now();
+            AppState.selectedAnswer = null;
+            
+            // Reset all question answers
+            AppState.questions.forEach(q => {
+                q.userAnswer = null;
+                q.isCorrect = null;
+            });
+            
+            showPhase('testing');
+            document.getElementById('testTitleDisplay').textContent = AppState.testTitle;
+            
+            startGlobalTimer();
+            loadQuestion();
+        }
+
+        function startGlobalTimer() {
+            updateGlobalTimer();
+            AppState.globalTimerInterval = setInterval(() => {
+                AppState.globalTimeRemaining--;
+                updateGlobalTimer();
+                
+                if (AppState.globalTimeRemaining <= 0) {
+                    endTest();
+                }
+            }, 1000);
+        }
+
+        function updateGlobalTimer() {
+            const mins = Math.floor(AppState.globalTimeRemaining / 60);
+            const secs = AppState.globalTimeRemaining % 60;
+            document.getElementById('globalTimer').textContent = 
+                `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            
+            const totalSeconds = AppState.globalDuration * 60;
+            const percentage = (AppState.globalTimeRemaining / totalSeconds) * 100;
+            document.getElementById('globalProgress').style.width = percentage + '%';
+        }
+
+        function loadQuestion() {
+            const q = AppState.questions[AppState.currentQuestionIndex];
+            
+            document.getElementById('currentQuestionNum').textContent = AppState.currentQuestionIndex + 1;
+            document.getElementById('questionText').textContent = q.question;
+            document.getElementById('questionProgress').textContent = 
+                `${AppState.currentQuestionIndex + 1} dari ${AppState.questions.length}`;
+            
+            // Load answers
+            const container = document.getElementById('answersContainer');
+            container.innerHTML = q.options.map((opt, idx) => `
+                <button onclick="selectAnswer(${idx})" 
+                    class="answer-btn w-full text-left px-6 py-4 bg-white rounded-lg font-semibold text-gray-800 hover:shadow-lg"
+                    data-idx="${idx}">
+                    <span class="inline-block w-8 h-8 bg-purple-100 text-purple-600 rounded-full text-center leading-8 mr-3 font-bold">
+                        ${String.fromCharCode(65 + idx)}
+                    </span>
+                    ${opt}
+                </button>
+            `).join('');
+            
+            // Reset selected answer
+            AppState.selectedAnswer = null;
+            document.getElementById('nextQuestionBtn').disabled = true;
+            document.getElementById('nextBtnText').textContent = 'Pilih Jawaban';
+            
+            // Update next button text
+            if (AppState.currentQuestionIndex === AppState.questions.length - 1) {
+                document.getElementById('nextBtnText').textContent = 'Submit Tes';
+            }
+            
+            // Start instinct timer
+            startInstinctTimer();
+        }
+
+        function startInstinctTimer() {
+            // Stop existing timer
+            if (AppState.instinctTimerInterval) {
+                clearInterval(AppState.instinctTimerInterval);
+            }
+            
+            AppState.instinctTimeRemaining = AppState.instinctDuration;
+            const progressBar = document.getElementById('instinctProgress');
+            progressBar.style.width = '0%';
+            progressBar.className = 'instinct-bar bg-gradient-to-r from-green-400 to-green-500 h-full';
+            
+            let elapsed = 0;
+            AppState.instinctTimerInterval = setInterval(() => {
+                elapsed++;
+                const percentage = (elapsed / AppState.instinctDuration) * 100;
+                progressBar.style.width = Math.min(percentage, 100) + '%';
+                
+                // Change color based on progress
+                if (percentage >= 100) {
+                    progressBar.className = 'instinct-bar danger h-full';
+                    playBeep();
+                    AppState.beepCount++;
+                    document.getElementById('beepCounter').textContent = AppState.beepCount;
+                    clearInterval(AppState.instinctTimerInterval);
+                } else if (percentage >= 75) {
+                    progressBar.className = 'instinct-bar danger h-full';
+                } else if (percentage >= 50) {
+                    progressBar.className = 'instinct-bar warning h-full';
+                }
+            }, 1000);
+        }
+
+        function selectAnswer(idx) {
+            AppState.selectedAnswer = idx;
+            AppState.questions[AppState.currentQuestionIndex].userAnswer = idx;
+            
+            // Update UI
+            document.querySelectorAll('.answer-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelector(`[data-idx="${idx}"]`).classList.add('selected');
+            
+            document.getElementById('nextQuestionBtn').disabled = false;
+            if (AppState.currentQuestionIndex === AppState.questions.length - 1) {
+                document.getElementById('nextBtnText').textContent = 'Submit Tes';
+            } else {
+                document.getElementById('nextBtnText').textContent = 'Soal Berikutnya';
+            }
+        }
+
+        function nextQuestion() {
+            if (AppState.selectedAnswer === null) return;
+            
+            // Stop instinct timer
+            if (AppState.instinctTimerInterval) {
+                clearInterval(AppState.instinctTimerInterval);
+            }
+            
+            // Move to next question or end test
+            if (AppState.currentQuestionIndex < AppState.questions.length - 1) {
+                AppState.currentQuestionIndex++;
+                loadQuestion();
+            } else {
+                endTest();
+            }
+        }
+
+        function endTest() {
+            // Stop timers
+            if (AppState.globalTimerInterval) clearInterval(AppState.globalTimerInterval);
+            if (AppState.instinctTimerInterval) clearInterval(AppState.instinctTimerInterval);
+            
+            // Calculate results (for this demo, we'll mark randomly as correct/incorrect)
+            // In a real scenario, you'd have correct answers defined
+            AppState.questions.forEach(q => {
+                if (q.userAnswer !== null) {
+                    // For demo: first option is always "correct" or random
+                    q.isCorrect = Math.random() > 0.3; // 70% correct rate for demo
+                }
+            });
+            
+            showResults();
+        }
+
+        // ===== AUDIO FUNCTION =====
+        function playBeep() {
+            if (!AppState.beepEnabled || !AppState.audioContext) return;
+            
+            try {
+                const oscillator = AppState.audioContext.createOscillator();
+                const gainNode = AppState.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(AppState.audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, AppState.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, AppState.audioContext.currentTime + 0.3);
+                
+                oscillator.start(AppState.audioContext.currentTime);
+                oscillator.stop(AppState.audioContext.currentTime + 0.3);
+            } catch (e) {
+                console.error('Error playing beep:', e);
+            }
+        }
+
+        // ===== RESULTS PHASE =====
+        function showResults() {
+            showPhase('result');
+            
+            const correctCount = AppState.questions.filter(q => q.isCorrect).length;
+            const totalCount = AppState.questions.length;
+            const accuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+            
+            document.getElementById('resultTestTitle').textContent = AppState.testTitle;
+            document.getElementById('accuracyDisplay').textContent = accuracy + '%';
+            document.getElementById('scoreDisplay').textContent = `${correctCount}/${totalCount} benar`;
+            
+            const mins = Math.floor(AppState.globalTimeRemaining / 60);
+            const secs = AppState.globalTimeRemaining % 60;
+            document.getElementById('timeRemainingDisplay').textContent = 
+                `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            
+            document.getElementById('beepTotalDisplay').textContent = AppState.beepCount;
+            
+            // Detailed review
+            const reviewContainer = document.getElementById('detailedReview');
+            reviewContainer.innerHTML = AppState.questions.map((q, idx) => {
+                const userAnswerText = q.userAnswer !== null ? q.options[q.userAnswer] : 'Tidak dijawab';
+                const isCorrect = q.isCorrect;
+                const statusIcon = isCorrect ? 
+                    '<svg class="icon text-green-500"><use href="#icon-check"/></svg>' :
+                    '<svg class="icon text-red-500"><use href="#icon-close"/></svg>';
+                const statusClass = isCorrect ? 'border-green-500' : 'border-red-500';
+                
+                return `
+                    <div class="bg-white p-4 rounded-lg border-l-4 ${statusClass}">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <p class="font-bold text-gray-700 mb-2">Soal ${idx + 1}: ${q.question}</p>
+                                <p class="text-sm">
+                                    <span class="font-semibold">Jawaban Anda:</span> 
+                                    <span class="${isCorrect ? 'text-green-600' : 'text-red-600'}">${userAnswerText}</span>
+                                </p>
+                            </div>
+                            ${statusIcon}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function generateMarkdown() {
+            const correctCount = AppState.questions.filter(q => q.isCorrect).length;
+            const totalCount = AppState.questions.length;
+            const accuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+            
+            const mins = Math.floor(AppState.globalTimeRemaining / 60);
+            const secs = AppState.globalTimeRemaining % 60;
+            const timeRemaining = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            
+            const now = new Date().toLocaleString('id-ID');
+            
+            let md = `# ${AppState.testTitle}\n\n`;
+            md += `**Tanggal Tes**: ${now}\n`;
+            md += `**Durasi**: ${AppState.globalDuration} menit\n`;
+            md += `**Total Soal**: ${totalCount}\n\n`;
+            md += `## Ringkasan Performa\n\n`;
+            md += `- **Akurasi**: ${correctCount}/${totalCount} (${accuracy}%)\n`;
+            md += `- **Sisa Waktu**: ${timeRemaining}\n`;
+            md += `- **Beep Violations**: ${AppState.beepCount} kali\n\n`;
+            md += `## Detail Hasil\n\n`;
+            
+            AppState.questions.forEach((q, idx) => {
+                const userAnswerText = q.userAnswer !== null ? q.options[q.userAnswer] : 'Tidak dijawab';
+                const status = q.isCorrect ? '✅' : '❌';
+                
+                md += `### Soal ${idx + 1}: ${q.question}\n\n`;
+                md += `- **Jawaban Anda**: ${userAnswerText} ${status}\n`;
+                md += `- **Opsi**: ${q.options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o}`).join(' | ')}\n\n`;
+            });
+            
+            md += `---\n*Generated by Custom Quiz Engine*\n`;
+            
+            return md;
+        }
+
+        function downloadMarkdown() {
+            const markdown = generateMarkdown();
+            const blob = new Blob([markdown], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${AppState.testTitle.replace(/[^a-z0-9]/gi, '_')}_hasil.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function copyToClipboard() {
+            const markdown = generateMarkdown();
+            navigator.clipboard.writeText(markdown).then(() => {
+                alert('Hasil berhasil disalin ke clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Gagal menyalin ke clipboard');
+            });
+        }
+
+        function newTest() {
+            if (confirm('Mulai tes baru? Data tes sekarang akan hilang.')) {
+                AppState.questions = [];
+                AppState.currentQuestionIndex = 0;
+                AppState.beepCount = 0;
+                AppState.selectedAnswer = null;
+                showPhase('setup');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# Enable URL Rewriting
+RewriteEngine On
+
+# Remove .html extension from URLs
+# Redirect /page.html to /page
+RewriteCond %{THE_REQUEST} ^GET\ /[^?\s]+\.html
+RewriteRule ^(.*)\.html$ /$1 [R=301,L,NE]
+
+# Serve .html files for pretty URLs
+# When accessing /page, serve page.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+)$ $1.html [L]
+
+# Set default document to index.html
+DirectoryIndex index.html
+
+# Optional: Force HTTPS (uncomment if needed)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
